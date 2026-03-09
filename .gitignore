@@ -2,7 +2,10 @@ __pycache__/
 *.py[cod]
 venv/
 .env
+
 data/
+!data/raw/*.dvc
+!data/raw/.gitignore
 models/
 .ipynb_checkpoints
 mlruns/

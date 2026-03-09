@@ -1,47 +1,44 @@
 import argparse
-import pandas as pd
-import numpy as np
+import os
+
+import joblib
+import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
-import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
 
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
-from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
 
-def load_data(path):
-    df = pd.read_csv(path)
-    return df
+def load_prepared_data(prepared_dir):
+    train_path = os.path.join(prepared_dir, "train.csv")
+    test_path = os.path.join(prepared_dir, "test.csv")
+
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
+
+    X_train = train_df.drop("Churn", axis=1)
+    y_train = train_df["Churn"]
+    X_test = test_df.drop("Churn", axis=1)
+    y_test = test_df["Churn"]
+
+    return X_train, X_test, y_train, y_test
 
 
-def preprocess(df):
-    df = df.dropna()
-
-    # encode categorical features
-    le = LabelEncoder()
-    for col in df.select_dtypes(include=['object']).columns:
-        df[col] = le.fit_transform(df[col])
-
-    X = df.drop("Churn", axis=1)
-    y = df["Churn"]
-
-    return X, y
-
-
-def plot_confusion_matrix(y_test, y_pred):
+def plot_confusion_matrix(y_test, y_pred, output_path):
     cm = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(5, 5))
-    sns.heatmap(cm, annot=True, fmt='d')
+    sns.heatmap(cm, annot=True, fmt="d")
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
-    plt.savefig("confusion_matrix.png")
+    plt.savefig(output_path)
     plt.close()
 
 
-def plot_feature_importance(model, X):
+def plot_feature_importance(model, X, output_path):
     importances = model.feature_importances_
     indices = np.argsort(importances)[::-1]
 
@@ -50,19 +47,15 @@ def plot_feature_importance(model, X):
     plt.bar(range(X.shape[1]), importances[indices])
     plt.xticks(range(X.shape[1]), X.columns[indices], rotation=90)
     plt.tight_layout()
-    plt.savefig("feature_importance.png")
+    plt.savefig(output_path)
     plt.close()
 
 
 def main(args):
-
     mlflow.set_experiment("Telco_Churn_Experiment")
-    df = load_data(args.data_path)
-    X, y = preprocess(df)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+    X_train, X_test, y_train, y_test = load_prepared_data(args.prepared_dir)
+    os.makedirs(args.models_dir, exist_ok=True)
 
     with mlflow.start_run():
         mlflow.set_tag("author", "Your_Name")
@@ -75,7 +68,7 @@ def main(args):
         model = RandomForestClassifier(
             n_estimators=args.n_estimators,
             max_depth=args.max_depth,
-            random_state=42
+            random_state=42,
         )
         model.fit(X_train, y_train)
         y_train_pred = model.predict(X_train)
@@ -83,7 +76,6 @@ def main(args):
 
         train_acc = accuracy_score(y_train, y_train_pred)
         test_acc = accuracy_score(y_test, y_test_pred)
-
         train_f1 = f1_score(y_train, y_train_pred)
         test_f1 = f1_score(y_test, y_test_pred)
 
@@ -92,19 +84,34 @@ def main(args):
         mlflow.log_metric("train_f1", train_f1)
         mlflow.log_metric("test_f1", test_f1)
 
-        plot_confusion_matrix(y_test, y_test_pred)
-        plot_feature_importance(model, X)
+        # Save plots to models dir for DVC, then log to MLflow
+        cm_path = os.path.join(args.models_dir, "confusion_matrix.png")
+        fi_path = os.path.join(args.models_dir, "feature_importance.png")
+        plot_confusion_matrix(y_test, y_test_pred, cm_path)
+        plot_feature_importance(model, X_train, fi_path)
 
-        mlflow.log_artifact("confusion_matrix.png")
-        mlflow.log_artifact("feature_importance.png")
+        mlflow.log_artifact(cm_path)
+        mlflow.log_artifact(fi_path)
 
         mlflow.sklearn.log_model(model, "random_forest_model")
+
+        # Save model to models_dir for DVC pipeline output
+        model_path = os.path.join(args.models_dir, "model.pkl")
+        joblib.dump(model, model_path)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
-    parser.add_argument("--data_path", type=str, default="data/raw/telco.csv")
+    parser.add_argument(
+        "prepared_dir",
+        type=str,
+        help="Path to prepared data directory (e.g. data/prepared)",
+    )
+    parser.add_argument(
+        "models_dir",
+        type=str,
+        help="Path to output models directory (e.g. data/models)",
+    )
     parser.add_argument("--n_estimators", type=int, default=100)
     parser.add_argument("--max_depth", type=int, default=None)
 

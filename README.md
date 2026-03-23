@@ -8,6 +8,8 @@
 - **DVC (Data Version Control)** — версіонування датасетів та оркестрація пайплайну
 - **MLflow** — відстеження експериментів та логування моделей
 - **Scikit-learn** — навчання моделей
+- **Optuna** — гіперпараметрична оптимізація
+- **Hydra** — конфігурація експериментів у YAML
 - **Python** — обробка даних та скрипти пайплайну
 
 Проєкт використовує датасет **Telco Customer Churn** для навчання класифікаційної моделі, що передбачає, чи клієнт залишить послугу.
@@ -31,10 +33,15 @@ mlops1/
 │       ├── confusion_matrix.png
 │       └── feature_importance.png
 │
+├── config/              # Hydra: config.yaml, model/, hpo/
 ├── src/
 │   ├── prepare.py
-│   └── train.py
-│
+│   ├── train.py
+│   └── optimize.py      # Optuna + MLflow nested runs
+├── scripts/
+│   └── compare_samplers.py
+├── reports/
+├── models/              # best_model.pkl після HPO
 ├── notebooks/
 │   └── 01_eda.ipynb
 │
@@ -134,6 +141,33 @@ mlflow ui
 
 Відкрити: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
+## HPO (Optuna) та Hydra
+
+Перед запуском потрібні підготовлені дані (`dvc repro` або наявні `data/prepared/*.csv`).
+
+```bash
+python src/optimize.py
+```
+
+**Параметри з командного рядка (Hydra):**
+
+```bash
+python src/optimize.py hpo.n_trials=30
+python src/optimize.py hpo=random
+python src/optimize.py model=logistic_regression
+python src/optimize.py hpo.use_cv=true
+```
+
+**Порівняння sampler TPE vs Random (однаковий `n_trials`):**
+
+```bash
+python scripts/compare_samplers.py
+```
+
+У MLflow з’являється **батьківський run** (study) і **вкладені child runs** для кожного trial; після HPO модель з найкращими параметрами перетреновується на повному train, оцінюється на **test**, зберігається як `models/best_model.pkl` і логуються `best_params.json`, `config_resolved.json`.
+
+**Model Registry (Staging):** у `config/config.yaml` встановіть `mlflow.register_model: true` і запустіть MLflow Tracking Server з backend store (SQLite/PostgreSQL); з чисто файловим `./mlruns` реєстрація може бути недоступна.
+
 ## Версіонування даних (DVC)
 
 DVC використовується для версіонування датасетів та оркестрації пайплайну.
@@ -183,6 +217,8 @@ dvc repro
 - Scikit-learn
 - MLflow
 - DVC
+- Optuna
+- Hydra
 - Pandas
 - NumPy
 - Matplotlib

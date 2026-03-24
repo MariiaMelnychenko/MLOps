@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 
 import joblib
@@ -95,7 +96,16 @@ def main(args):
 
         mlflow.sklearn.log_model(model, "random_forest_model")
 
-        # Save model to models_dir for DVC pipeline output
+        metrics = {
+            "accuracy": float(test_acc),
+            "f1": float(test_f1),
+            "train_accuracy": float(train_acc),
+            "train_f1": float(train_f1),
+        }
+        metrics_path = os.path.join(args.models_dir, "metrics.json")
+        with open(metrics_path, "w", encoding="utf-8") as f:
+            json.dump(metrics, f, ensure_ascii=False, indent=2)
+
         model_path = os.path.join(args.models_dir, "model.pkl")
         joblib.dump(model, model_path)
 

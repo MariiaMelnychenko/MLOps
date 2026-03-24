@@ -30,6 +30,7 @@ mlops1/
 │   │
 │   └── models/
 │       ├── model.pkl
+│       ├── metrics.json
 │       ├── confusion_matrix.png
 │       └── feature_importance.png
 │
@@ -38,10 +39,15 @@ mlops1/
 │   ├── prepare.py
 │   ├── train.py
 │   └── optimize.py      # Optuna + MLflow nested runs
+├── tests/
+│   ├── test_data.py     # Pre-train: валідація даних
+│   └── test_model.py    # Post-train: артефакти + Quality Gate
 ├── scripts/
 │   └── compare_samplers.py
+├── .github/workflows/
+│   └── cml.yaml         # CI/CD: GitHub Actions + CML
 ├── reports/
-├── models/              # best_model.pkl після HPO
+├── models/
 ├── notebooks/
 │   └── 01_eda.ipynb
 │
@@ -108,6 +114,7 @@ mlops1/
 **Вихідні файли:**
 
 - `data/models/model.pkl`
+- `data/models/metrics.json`
 - `data/models/confusion_matrix.png`
 - `data/models/feature_importance.png`
 
@@ -211,6 +218,27 @@ dvc repro
 - навчить модель
 - згенерує артефакти
 
+## CI/CD (GitHub Actions + CML)
+
+При кожному **push** або **pull_request** автоматично:
+
+1. Встановлюються залежності
+2. Лінтинг коду (`flake8`, `black`)
+3. **Pre-train тести** — валідація структури даних (`tests/test_data.py`)
+4. Підготовка і навчання моделі (`prepare.py` → `train.py`)
+5. **Post-train тести** — перевірка артефактів + Quality Gate за F1 (`tests/test_model.py`)
+6. **CML-звіт** у PR: метрики, confusion matrix, feature importance
+
+**Quality Gate:** модель має мати F1 >= поріг (за замовчуванням 0.50).
+
+**CD:** при push у `main` — `model.pkl` та `metrics.json` зберігаються як workflow artifact.
+
+Запуск тестів локально:
+
+```bash
+pytest tests/ -v
+```
+
 ## Використані технології
 
 - Python
@@ -219,6 +247,8 @@ dvc repro
 - DVC
 - Optuna
 - Hydra
+- GitHub Actions + CML
+- pytest
 - Pandas
 - NumPy
 - Matplotlib

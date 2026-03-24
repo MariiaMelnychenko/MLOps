@@ -43,6 +43,8 @@ jobs:
           pytest tests/test_data.py -v
 
       - name: Train model
+        env:
+          MLFLOW_TRACKING_URI: mlruns
         run: |
           python src/train.py data/prepared data/models
 

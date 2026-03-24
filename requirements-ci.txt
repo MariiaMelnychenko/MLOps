@@ -4,15 +4,8 @@ scikit-learn
 matplotlib
 seaborn
 mlflow
-jupyter
 pyarrow
-fastparquet
-dvc
-pathspec
 pyyaml
-optuna
-hydra-core
-omegaconf
 joblib
 pytest
 black

@@ -5,7 +5,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -52,12 +52,15 @@ jobs:
         run: |
           pytest tests/test_model.py -v
 
+      - name: Setup CML
+        if: github.event_name == 'pull_request'
+        uses: iterative/setup-cml@v3
+
       - name: Create CML report (PR only)
         if: github.event_name == 'pull_request'
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pip install cml
           echo "## Model Metrics" > report.md
           echo '```json' >> report.md
           cat data/models/metrics.json >> report.md

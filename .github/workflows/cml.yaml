@@ -34,13 +34,13 @@ jobs:
         run: |
           black src/ tests/ --check --diff || true
 
-      - name: Pre-train tests (data validation)
-        run: |
-          pytest tests/test_data.py -v
-
       - name: Prepare data
         run: |
           python src/prepare.py data/raw/telco.csv data/prepared
+
+      - name: Pre-train tests (data validation)
+        run: |
+          pytest tests/test_data.py -v
 
       - name: Train model
         run: |

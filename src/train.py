@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import pathlib
 
 import joblib
 import matplotlib.pyplot as plt
@@ -9,7 +10,6 @@ import mlflow.sklearn
 import numpy as np
 import pandas as pd
 import seaborn as sns
-
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
@@ -53,13 +53,16 @@ def plot_feature_importance(model, X, output_path):
 
 
 def main(args):
+    # Use portable absolute URI so mlflow works on both Windows and Linux
+    tracking_uri = pathlib.Path("mlruns").resolve().as_uri()
+    mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment("Telco_Churn_Experiment")
 
     X_train, X_test, y_train, y_test = load_prepared_data(args.prepared_dir)
     os.makedirs(args.models_dir, exist_ok=True)
 
     with mlflow.start_run():
-        mlflow.set_tag("author", "Your_Name")
+        mlflow.set_tag("author", "MariiaMelnychenko")
         mlflow.set_tag("model_type", "RandomForest")
         mlflow.set_tag("dataset_version", "v1")
 
@@ -85,16 +88,14 @@ def main(args):
         mlflow.log_metric("train_f1", train_f1)
         mlflow.log_metric("test_f1", test_f1)
 
-        # Save plots to models dir for DVC, then log to MLflow
+        # Save plots and core artifacts to models dir first
         cm_path = os.path.join(args.models_dir, "confusion_matrix.png")
         fi_path = os.path.join(args.models_dir, "feature_importance.png")
+        metrics_path = os.path.join(args.models_dir, "metrics.json")
+        model_path = os.path.join(args.models_dir, "model.pkl")
+
         plot_confusion_matrix(y_test, y_test_pred, cm_path)
         plot_feature_importance(model, X_train, fi_path)
-
-        mlflow.log_artifact(cm_path)
-        mlflow.log_artifact(fi_path)
-
-        mlflow.sklearn.log_model(model, "random_forest_model")
 
         metrics = {
             "accuracy": float(test_acc),
@@ -102,12 +103,18 @@ def main(args):
             "train_accuracy": float(train_acc),
             "train_f1": float(train_f1),
         }
-        metrics_path = os.path.join(args.models_dir, "metrics.json")
         with open(metrics_path, "w", encoding="utf-8") as f:
             json.dump(metrics, f, ensure_ascii=False, indent=2)
 
-        model_path = os.path.join(args.models_dir, "model.pkl")
         joblib.dump(model, model_path)
+        print(f"Saved: {model_path}, {metrics_path}, {cm_path}, {fi_path}")
+        print(f"Metrics: accuracy={test_acc:.4f}, f1={test_f1:.4f}")
+
+        # Log artifacts to MLflow (after files are saved)
+        mlflow.log_artifact(cm_path)
+        mlflow.log_artifact(fi_path)
+        mlflow.log_artifact(metrics_path)
+        mlflow.sklearn.log_model(model, "random_forest_model")
 
 
 if __name__ == "__main__":

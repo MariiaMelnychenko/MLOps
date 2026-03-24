@@ -239,6 +239,8 @@ dvc repro
 pytest tests/ -v
 ```
 
+Check
+
 ## Використані технології
 
 - Python

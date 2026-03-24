@@ -1,4 +1,5 @@
 """Post-train тести: перевірка артефактів та Quality Gate."""
+
 import json
 import os
 
@@ -43,9 +44,9 @@ def test_quality_gate_f1():
     with open(path, "r", encoding="utf-8") as f:
         metrics = json.load(f)
     f1 = float(metrics["f1"])
-    assert f1 >= F1_THRESHOLD, (
-        f"Quality Gate FAILED: f1={f1:.4f} < threshold={F1_THRESHOLD:.2f}"
-    )
+    assert (
+        f1 >= F1_THRESHOLD
+    ), f"Quality Gate FAILED: f1={f1:.4f} < threshold={F1_THRESHOLD:.2f}"
 
 
 def test_quality_gate_accuracy():

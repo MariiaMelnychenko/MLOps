@@ -24,8 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest flake8 black
+          pip install -r requirements-ci.txt
 
       - name: Lint (flake8)
         run: |
@@ -35,29 +34,24 @@ jobs:
         run: |
           black src/ tests/ --check --diff || true
 
-      # Pre-train tests: data validation
       - name: Pre-train tests (data validation)
         run: |
           pytest tests/test_data.py -v
 
-      # Prepare data (if not already present)
       - name: Prepare data
         run: |
           python src/prepare.py data/raw/telco.csv data/prepared
 
-      # Train model
       - name: Train model
         run: |
           python src/train.py data/prepared data/models
 
-      # Post-train tests: artifacts + Quality Gate
       - name: Post-train tests (Quality Gate)
         env:
           F1_THRESHOLD: "0.50"
         run: |
           pytest tests/test_model.py -v
 
-      # CML report in PR
       - name: Create CML report (PR only)
         if: github.event_name == 'pull_request'
         env:
@@ -77,10 +71,9 @@ jobs:
           cml publish data/models/feature_importance.png --md >> report.md
           echo "" >> report.md
           echo "### Quality Gate" >> report.md
-          echo "F1 threshold: \$F1_THRESHOLD" >> report.md
+          echo "F1 threshold: 0.50" >> report.md
           cml comment create report.md
 
-      # CD: upload model artifact on push to main
       - name: Upload model artifact (main only)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/upload-artifact@v4

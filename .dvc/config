@@ -1,4 +1,5 @@
 [core]
     remote = mylocal
+    analytics = false
 ['remote "mylocal"']
     url = ../../dvc_storage

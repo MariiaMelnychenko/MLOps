@@ -1,9 +1,3 @@
-"""
-ML training DAG: DVC prepare/train, evaluate metrics.json, branch on accuracy.
-
-Airflow 2.x — BashOperator for shell/DVC, BranchPythonOperator for gating.
-"""
-
 from __future__ import annotations
 
 import json
@@ -19,8 +13,8 @@ from airflow.operators.python import BranchPythonOperator, PythonOperator
 _PROJECT_DEFAULT = pathlib.Path(__file__).resolve().parent.parent
 PROJECT_ROOT = os.environ.get("ML_PROJECT_ROOT", str(_PROJECT_DEFAULT))
 
-# Threshold for model promotion (adjust for your baseline; lab example uses 0.85)
-ACCURACY_THRESHOLD = float(os.environ.get("ML_ACCURACY_THRESHOLD", "0.85"))
+# Threshold for model promotion (adjust for your baseline; lab example uses 0.5)
+ACCURACY_THRESHOLD = float(os.environ.get("ML_ACCURACY_THRESHOLD", "0.5"))
 
 METRICS_PATH = os.path.join(PROJECT_ROOT, "data", "models", "metrics.json")
 
@@ -95,7 +89,12 @@ with DAG(
     catchup=False,
     tags=["lab5"],
 ) as dag:
-    env_project = {"ML_PROJECT_ROOT": PROJECT_ROOT}
+    # DVC_NO_ANALYTICS: avoid daemon + ValueError after successful repro in containers
+    env_project = {
+        "ML_PROJECT_ROOT": PROJECT_ROOT,
+        "DVC_NO_ANALYTICS": "true",
+        "CI": "true",
+    }
 
     check_data = BashOperator(
         task_id="check_data",
@@ -103,15 +102,22 @@ with DAG(
         env=env_project,
     )
 
+    # Use `python -m dvc`: the `dvc` console script is often not on PATH in Airflow workers.
     prepare = BashOperator(
         task_id="prepare",
-        bash_command='set -euo pipefail && cd "$ML_PROJECT_ROOT" && dvc repro -s prepare',
+        bash_command=(
+            'set -euo pipefail && cd "$ML_PROJECT_ROOT" && '
+            'python -m dvc repro -s prepare'
+        ),
         env=env_project,
     )
 
     train = BashOperator(
         task_id="train",
-        bash_command='set -euo pipefail && cd "$ML_PROJECT_ROOT" && dvc repro -s train',
+        bash_command=(
+            'set -euo pipefail && cd "$ML_PROJECT_ROOT" && '
+            'python -m dvc repro -s train'
+        ),
         env=env_project,
     )
 

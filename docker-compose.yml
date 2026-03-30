@@ -12,6 +12,9 @@ services:
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
       # Project root inside container (mounted from host)
       ML_PROJECT_ROOT: /opt/airflow/project
+      # DVC analytics spawns a detached daemon; fails in Airflow subprocess (empty pid).
+      DVC_NO_ANALYTICS: "true"
+      CI: "true"
     volumes:
       - ./dags:/opt/airflow/dags
       - ./:/opt/airflow/project

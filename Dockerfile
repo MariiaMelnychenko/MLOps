@@ -9,11 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements-docker.txt .
 
-# requirements.txt already pins dvc, mlflow, and training stack
+# Full requirements.txt pins black+dvc with incompatible pathspec; this file is for a working train+dvc image.
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --user -r requirements.txt
+    pip install --no-cache-dir --user -r requirements-docker.txt
 
 # Stage 2: runtime image (no compilers)
 FROM python:3.10-slim

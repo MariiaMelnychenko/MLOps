@@ -1,0 +1,20 @@
+# Local Apache Airflow (official image extended via Dockerfile.airflow) + project mount.
+# Usage: docker compose up --build
+# UI: http://localhost:8080  (standalone creates admin user; check container logs for password)
+
+services:
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      # Project root inside container (mounted from host)
+      ML_PROJECT_ROOT: /opt/airflow/project
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./:/opt/airflow/project
+    ports:
+      - "8080:8080"
+    command: standalone

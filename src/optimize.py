@@ -38,7 +38,11 @@ def git_revision(cwd: str | Path) -> str:
             text=True,
             timeout=5,
         ).strip()
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+    except (
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+        subprocess.TimeoutExpired,
+    ):
         return "unknown"
 
 
@@ -79,7 +83,11 @@ def evaluate_metric(
     y_pred = model.predict(X_val)
     if metric == "f1":
         return float(
-            f1_score(y_val, y_pred, average="binary" if len(np.unique(y_val)) == 2 else "weighted")
+            f1_score(
+                y_val,
+                y_pred,
+                average="binary" if len(np.unique(y_val)) == 2 else "weighted",
+            )
         )
     if metric == "roc_auc":
         if hasattr(model, "predict_proba"):
@@ -129,12 +137,16 @@ def make_sampler(
     raise ValueError("sampler: tpe | random | grid")
 
 
-def suggest_params(trial: optuna.Trial, model_type: str, cfg: DictConfig) -> Dict[str, Any]:
+def suggest_params(
+    trial: optuna.Trial, model_type: str, cfg: DictConfig
+) -> Dict[str, Any]:
     if model_type == "random_forest":
         space = cfg.hpo.random_forest
         return {
             "n_estimators": trial.suggest_int(
-                "n_estimators", int(space.n_estimators.low), int(space.n_estimators.high)
+                "n_estimators",
+                int(space.n_estimators.low),
+                int(space.n_estimators.high),
             ),
             "max_depth": trial.suggest_int(
                 "max_depth", int(space.max_depth.low), int(space.max_depth.high)
@@ -153,7 +165,9 @@ def suggest_params(trial: optuna.Trial, model_type: str, cfg: DictConfig) -> Dic
     if model_type == "logistic_regression":
         space = cfg.hpo.logistic_regression
         return {
-            "C": trial.suggest_float("C", float(space.C.low), float(space.C.high), log=True),
+            "C": trial.suggest_float(
+                "C", float(space.C.low), float(space.C.high), log=True
+            ),
             "solver": trial.suggest_categorical("solver", list(space.solver)),
             "penalty": trial.suggest_categorical("penalty", list(space.penalty)),
         }
@@ -177,7 +191,9 @@ def objective_factory(
             mlflow.set_tag("model_type", cfg.model.type)
             mlflow.set_tag("sampler", str(cfg.hpo.sampler))
             mlflow.set_tag("seed", str(cfg.seed))
-            mlflow.log_params({k: str(v) if v is not None else "null" for k, v in params.items()})
+            mlflow.log_params(
+                {k: str(v) if v is not None else "null" for k, v in params.items()}
+            )
             model = build_model(cfg.model.type, params=params, seed=int(cfg.seed))
             if cfg.hpo.use_cv:
                 score = evaluate_cv(
@@ -200,6 +216,7 @@ def objective_factory(
 
             mlflow.log_metric(metric_name, score)
             return score
+
     return objective
 
 
@@ -207,7 +224,10 @@ def register_model_if_enabled(model_uri: str, model_name: str, stage: str) -> No
     client = mlflow.tracking.MlflowClient()
     mv = mlflow.register_model(model_uri, model_name)
     client.transition_model_version_stage(
-        name=model_name, version=mv.version, stage=stage, archive_existing_versions=False
+        name=model_name,
+        version=mv.version,
+        stage=stage,
+        archive_existing_versions=False,
     )
     client.set_model_version_tag(model_name, mv.version, "registered_by", "lab3")
     client.set_model_version_tag(model_name, mv.version, "stage", stage)
@@ -266,14 +286,18 @@ def main(cfg: DictConfig) -> None:
             sampler=sampler,
         )
         objective = objective_factory(cfg, X_train_full, X_test, y_train_full, y_test)
-        study.optimize(objective, n_trials=int(cfg.hpo.n_trials), show_progress_bar=False)
+        study.optimize(
+            objective, n_trials=int(cfg.hpo.n_trials), show_progress_bar=False
+        )
 
         best_trial = study.best_trial
         metric_name = str(cfg.hpo.metric)
         mlflow.log_metric(f"best_{metric_name}", float(best_trial.value))
         mlflow.log_dict(dict(best_trial.params), "best_params.json")
 
-        best_model = build_model(cfg.model.type, params=best_trial.params, seed=int(cfg.seed))
+        best_model = build_model(
+            cfg.model.type, params=best_trial.params, seed=int(cfg.seed)
+        )
         best_model.fit(X_train_full, y_train_full)
         y_test_pred = best_model.predict(X_test)
         final_f1 = float(

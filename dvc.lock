@@ -7,31 +7,34 @@ stages:
       hash: md5
       md5: 0f9de68e012bd3aed5fa7cdc9fc421af
       size: 977501
+      isexec: true
     - path: src/prepare.py
       hash: md5
-      md5: 8a4a6b4cab813745e369e9eda9bfd867
-      size: 1328
+      md5: 5c84731acefc14614bfbae68816f8e9f
+      size: 1360
+      isexec: true
     outs:
     - path: data/prepared
       hash: md5
-      md5: 61225373b8d14c9d3dfe4d92f7d2a64f.dir
-      size: 374083
+      md5: cdca5bb05612129ef7711d57129ae520.dir
+      size: 367038
       nfiles: 2
   train:
     cmd: python src/train.py data/prepared data/models
     deps:
     - path: data/prepared
       hash: md5
-      md5: 61225373b8d14c9d3dfe4d92f7d2a64f.dir
-      size: 374083
+      md5: cdca5bb05612129ef7711d57129ae520.dir
+      size: 367038
       nfiles: 2
     - path: src/train.py
       hash: md5
-      md5: 5a3122f63623b458e4bc5015fb985347
-      size: 3733
+      md5: b13e0db43b41ef1b90d0e8deb7222252
+      size: 4516
+      isexec: true
     outs:
     - path: data/models
       hash: md5
-      md5: 48e02d548fb943e74b05e55e672a32c6.dir
-      size: 16680295
-      nfiles: 3
+      md5: f21dac288c2b2ea2891f05dc95a0c4a7.dir
+      size: 16690841
+      nfiles: 4

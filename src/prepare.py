@@ -24,8 +24,12 @@ def preprocess(df):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_file", type=str, help="Path to raw data (e.g. data/raw/telco.csv)")
-    parser.add_argument("output_dir", type=str, help="Path to output directory (e.g. data/prepared)")
+    parser.add_argument(
+        "input_file", type=str, help="Path to raw data (e.g. data/raw/telco.csv)"
+    )
+    parser.add_argument(
+        "output_dir", type=str, help="Path to output directory (e.g. data/prepared)"
+    )
     args = parser.parse_args()
 
     input_file = args.input_file

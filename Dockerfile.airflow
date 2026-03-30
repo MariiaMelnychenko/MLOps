@@ -1,0 +1,17 @@
+# Extends official Apache Airflow image with project ML + DVC deps (BashOperator runs dvc/ml).
+FROM apache/airflow:2.8.1-python3.10
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
+USER airflow
+WORKDIR /opt/airflow
+
+# Lighter than full freeze; enough for prepare/train via DVC + train.py
+COPY requirements-ci.txt /opt/airflow/requirements-ci.txt
+RUN pip install --no-cache-dir -r /opt/airflow/requirements-ci.txt "dvc>=3.0" "mlflow>=2.0"
+
+# Ensure console scripts from `pip install --user` are visible if needed
+ENV PATH="/home/airflow/.local/bin:${PATH}" \
+    ML_PROJECT_ROOT=/opt/airflow/project

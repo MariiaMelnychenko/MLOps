@@ -1,4 +1,5 @@
 """Pre-train тести: перевірка якості та структури вхідних даних."""
+
 import os
 
 import pandas as pd
